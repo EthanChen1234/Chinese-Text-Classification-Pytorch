@@ -3,7 +3,7 @@ import os
 import torch
 import numpy as np
 import pickle as pkl
-from tqdm import tqdm
+from tqdm import tqdm  # python 进度条
 import time
 from datetime import timedelta
 
@@ -13,6 +13,9 @@ UNK, PAD = '<UNK>', '<PAD>'  # 未知字，padding符号
 
 
 def build_vocab(file_path, tokenizer, max_size, min_freq):
+    # vocab, {word: num}（按词频顺序），<UNK> 未知字，<PAD> 填充字符，
+    # 需要去停用词么？
+    # min_freq 最小为1，可以不设置
     vocab_dic = {}
     with open(file_path, 'r', encoding='UTF-8') as f:
         for line in tqdm(f):
@@ -141,15 +144,21 @@ if __name__ == "__main__":
         word_to_id = build_vocab(train_dir, tokenizer=tokenizer, max_size=MAX_VOCAB_SIZE, min_freq=1)
         pkl.dump(word_to_id, open(vocab_dir, 'wb'))
 
-    embeddings = np.random.rand(len(word_to_id), emb_dim)
-    f = open(pretrain_dir, "r", encoding='UTF-8')
-    for i, line in enumerate(f.readlines()):
-        # if i == 0:  # 若第一行是标题，则跳过
-        #     continue
-        lin = line.strip().split(" ")
-        if lin[0] in word_to_id:
-            idx = word_to_id[lin[0]]
-            emb = [float(x) for x in lin[1:301]]
-            embeddings[idx] = np.asarray(emb, dtype='float32')
-    f.close()
-    np.savez_compressed(filename_trimmed_dir, embeddings=embeddings)
+    # embeddings = np.random.rand(len(word_to_id), emb_dim)
+    # f = open(pretrain_dir, "r", encoding='UTF-8')
+    # for i, line in enumerate(f.readlines()):
+    #     # if i == 0:  # 若第一行是标题，则跳过
+    #     #     continue
+    #     lin = line.strip().split(" ")
+    #     if lin[0] in word_to_id:
+    #         idx = word_to_id[lin[0]]
+    #         emb = [float(x) for x in lin[1:301]]
+    #         embeddings[idx] = np.asarray(emb, dtype='float32')
+    # f.close()
+    # np.savez_compressed(filename_trimmed_dir, embeddings=embeddings)
+
+    vocab, train_data, dev_data, test_data = build_dataset(config, args.word)
+    train_iter = build_iterator(train_data, config)
+
+    train = load_dataset(config.train_path, config.pad_size)
+
