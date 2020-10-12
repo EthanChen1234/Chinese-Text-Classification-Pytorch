@@ -3,7 +3,7 @@ import time
 import torch
 import numpy as np
 from train_eval import train, init_network
-from importlib import import_module
+from importlib import import_module  # ?
 import argparse
 
 parser = argparse.ArgumentParser(description='Chinese Text Classification')
@@ -46,8 +46,8 @@ if __name__ == '__main__':
 
     # train
     config.n_vocab = len(vocab)
-    model = x.Model(config).to(config.device)
+    model = x.Model(config).to(config.device)  # 模型初始化
     if model_name != 'Transformer':
-        init_network(model)
+        init_network(model)  # 权重初始化
     print(model.parameters)
     train(config, model, train_iter, dev_iter, test_iter)

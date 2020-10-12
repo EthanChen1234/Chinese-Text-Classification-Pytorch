@@ -33,7 +33,7 @@ def train(config, model, train_iter, dev_iter, test_iter):
 
     # 学习率指数衰减，每次epoch：学习率 = gamma * 学习率
     # scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
-    total_batch = 0  # 记录进行到多少batch
+    total_batch = 0  # 记录进行到多少batch # 应该是step
     dev_best_loss = float('inf')
     last_improve = 0  # 记录上次验证集loss下降的batch数
     flag = False  # 记录是否很久没有效果提升
@@ -55,7 +55,7 @@ def train(config, model, train_iter, dev_iter, test_iter):
                 dev_acc, dev_loss = evaluate(config, model, dev_iter)
                 if dev_loss < dev_best_loss:
                     dev_best_loss = dev_loss
-                    torch.save(model.state_dict(), config.save_path)
+                    torch.save(model.state_dict(), config.save_path)  # 保存模型
                     improve = '*'
                     last_improve = total_batch
                 else:

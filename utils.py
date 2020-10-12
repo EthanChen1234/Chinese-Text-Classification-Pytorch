@@ -46,7 +46,7 @@ def build_dataset(config, ues_word):
     def load_dataset(path, pad_size=32):
         contents = []
         with open(path, 'r', encoding='UTF-8') as f:
-            for line in tqdm(f):
+            for line in tqdm(f):  # 中华女子学院：本科层次仅1专业招男生\t3\n
                 lin = line.strip()
                 if not lin:
                     continue
@@ -56,7 +56,7 @@ def build_dataset(config, ues_word):
                 seq_len = len(token)
                 if pad_size:
                     if len(token) < pad_size:
-                        token.extend([PAD] * (pad_size - len(token)))
+                        token.extend([PAD] * (pad_size - len(token)))  # 在后面填充
                     else:
                         token = token[:pad_size]
                         seq_len = pad_size
