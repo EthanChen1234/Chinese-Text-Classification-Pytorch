@@ -36,6 +36,7 @@ def build_dataset(config, ues_word):
         tokenizer = lambda x: x.split(' ')  # 以空格隔开，word-level
     else:
         tokenizer = lambda x: [y for y in x]  # char-level
+
     if os.path.exists(config.vocab_path):
         vocab = pkl.load(open(config.vocab_path, 'rb'))
     else:
@@ -51,7 +52,7 @@ def build_dataset(config, ues_word):
                 if not lin:
                     continue
                 content, label = lin.split('\t')
-                words_line = []
+                words_idx = []
                 token = tokenizer(content)
                 seq_len = len(token)
                 if pad_size:
@@ -62,8 +63,8 @@ def build_dataset(config, ues_word):
                         seq_len = pad_size
                 # word to id
                 for word in token:
-                    words_line.append(vocab.get(word, vocab.get(UNK)))
-                contents.append((words_line, int(label), seq_len))
+                    words_idx.append(vocab.get(word, vocab.get(UNK)))
+                contents.append((words_idx, int(label), seq_len))
         return contents  # [([...], 0), ([...], 1), ...]
     train = load_dataset(config.train_path, config.pad_size)
     dev = load_dataset(config.dev_path, config.pad_size)
@@ -72,6 +73,7 @@ def build_dataset(config, ues_word):
 
 
 class DatasetIterater(object):
+    # 可以直接用Pytorch中的DataLoader
     def __init__(self, batches, batch_size, device):
         self.batch_size = batch_size
         self.batches = batches
@@ -144,21 +146,16 @@ if __name__ == "__main__":
         word_to_id = build_vocab(train_dir, tokenizer=tokenizer, max_size=MAX_VOCAB_SIZE, min_freq=1)
         pkl.dump(word_to_id, open(vocab_dir, 'wb'))
 
-    # embeddings = np.random.rand(len(word_to_id), emb_dim)
-    # f = open(pretrain_dir, "r", encoding='UTF-8')
-    # for i, line in enumerate(f.readlines()):
-    #     # if i == 0:  # 若第一行是标题，则跳过
-    #     #     continue
-    #     lin = line.strip().split(" ")
-    #     if lin[0] in word_to_id:
-    #         idx = word_to_id[lin[0]]
-    #         emb = [float(x) for x in lin[1:301]]
-    #         embeddings[idx] = np.asarray(emb, dtype='float32')
-    # f.close()
-    # np.savez_compressed(filename_trimmed_dir, embeddings=embeddings)
-
-    vocab, train_data, dev_data, test_data = build_dataset(config, args.word)
-    train_iter = build_iterator(train_data, config)
-
-    train = load_dataset(config.train_path, config.pad_size)
+    embeddings = np.random.rand(len(word_to_id), emb_dim)
+    f = open(pretrain_dir, "r", encoding='UTF-8')
+    for i, line in enumerate(f.readlines()):
+        # if i == 0:  # 若第一行是标题，则跳过
+        #     continue
+        lin = line.strip().split(" ")
+        if lin[0] in word_to_id:
+            idx = word_to_id[lin[0]]
+            emb = [float(x) for x in lin[1:301]]
+            embeddings[idx] = np.asarray(emb, dtype='float32')
+    f.close()
+    np.savez_compressed(filename_trimmed_dir, embeddings=embeddings)
 

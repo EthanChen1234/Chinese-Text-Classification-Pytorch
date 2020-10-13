@@ -6,7 +6,6 @@ import numpy as np
 
 
 class Config(object):
-
     """配置参数"""
     def __init__(self, dataset, embedding):
         self.model_name = 'TextCNN'
@@ -24,7 +23,7 @@ class Config(object):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')   # 设备
 
         self.dropout = 0.5                                              # 随机失活
-        self.require_improvement = 1000                                 # 若超过1000batch效果还没提升，则提前结束训练
+        self.require_improvement = 1000                                 # 若超过1000步效果还没提升，则提前结束训练
         self.num_classes = len(self.class_list)                         # 类别数
         self.n_vocab = 0                                                # 词表大小，在运行时赋值
         self.num_epochs = 20                                            # epoch数
@@ -53,14 +52,16 @@ class Model(nn.Module):
         self.fc = nn.Linear(config.num_filters * len(config.filter_sizes), config.num_classes)
 
     def conv_and_pool(self, x, conv):
+        # conv:(batch_size, num_filters, seq_len-filter_size+1, 1), squ:(batch_size, num_filters, seq_len-filter_size+1)
         x = F.relu(conv(x)).squeeze(3)
-        x = F.max_pool1d(x, x.size(2)).squeeze(2)
+        x = F.max_pool1d(x, x.size(2)).squeeze(2)  # (batch_size, num_filters, 1) -> (batch_size, num_filters)
         return x
 
     def forward(self, x):
-        out = self.embedding(x[0])
-        out = out.unsqueeze(1)
-        out = torch.cat([self.conv_and_pool(out, conv) for conv in self.convs], 1)
+        # x[0]: (batch_size, pad_size), pad_size == seq_len
+        out = self.embedding(x[0])  # out: (batch_size, seq_len, embedding_size)
+        out = out.unsqueeze(1)  # (batch_size, channel(=1), seq_len, embedding_size)
+        out = torch.cat([self.conv_and_pool(out, conv) for conv in self.convs], 1)  # (batch_size, num_filters * len(filter_sizes))
         out = self.dropout(out)
-        out = self.fc(out)
+        out = self.fc(out)  # (batch_size, num_classes)
         return out

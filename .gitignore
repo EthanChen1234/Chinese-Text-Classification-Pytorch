@@ -3,3 +3,5 @@ venv/
 *.ipynb_checkpoints
 *.pyc
 */__pycache__/
+THUCNews/log/
+THUCNews/saved_dict/
