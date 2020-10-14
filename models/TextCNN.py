@@ -8,6 +8,7 @@ import numpy as np
 class Config(object):
     """配置参数"""
     def __init__(self, dataset, embedding):
+        # dataset: THUCNews, embedding: embedding_SougouNews.npz / None / embedding_Tencent.npz
         self.model_name = 'TextCNN'
         self.train_path = dataset + '/data/train.txt'                                # 训练集
         self.dev_path = dataset + '/data/dev.txt'                                    # 验证集
@@ -19,7 +20,7 @@ class Config(object):
         self.log_path = dataset + '/log/' + self.model_name
         self.embedding_pretrained = torch.tensor(
             np.load(dataset + '/data/' + embedding)["embeddings"].astype('float32'))\
-            if embedding != 'random' else None                                       # 预训练词向量
+            if embedding != 'random' else None                                       # 预训练词向量,(4762, 300),float64->32
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')   # 设备
 
         self.dropout = 0.5                                              # 随机失活

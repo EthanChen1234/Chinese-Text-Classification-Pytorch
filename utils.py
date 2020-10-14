@@ -1,33 +1,34 @@
 # coding: UTF-8
 import os
 import torch
+import logging
 import numpy as np
 import pickle as pkl
 from tqdm import tqdm  # python 进度条
 import time
+import datetime
 from datetime import timedelta
-
 
 MAX_VOCAB_SIZE = 10000  # 词表长度限制
 UNK, PAD = '<UNK>', '<PAD>'  # 未知字，padding符号
 
 
 def build_vocab(file_path, tokenizer, max_size, min_freq):
-    # vocab, {word: num}（按词频顺序），<UNK> 未知字，<PAD> 填充字符，
+    # vocab, {word: num}（按词频顺序），<UNK> 未知字，<PAD> 填充字符
     # 需要去停用词么？
-    # min_freq 最小为1，可以不设置
-    vocab_dic = {}
+    vocab_freq = {}
     with open(file_path, 'r', encoding='UTF-8') as f:
         for line in tqdm(f):
-            lin = line.strip()
-            if not lin:
+            line = line.strip()
+            if not line:
                 continue
-            content = lin.split('\t')[0]
+            content = line.split('\t')[0]
             for word in tokenizer(content):
-                vocab_dic[word] = vocab_dic.get(word, 0) + 1
-        vocab_list = sorted([_ for _ in vocab_dic.items() if _[1] >= min_freq], key=lambda x: x[1], reverse=True)[:max_size]
-        vocab_dic = {word_count[0]: idx for idx, word_count in enumerate(vocab_list)}
-        vocab_dic.update({UNK: len(vocab_dic), PAD: len(vocab_dic) + 1})
+                vocab_freq[word] = vocab_freq.get(word, 0) + 1
+    vocab_list = sorted([_ for _ in vocab_freq.items() if _[1] >= min_freq], key=lambda x: x[1], reverse=True)[:max_size]
+    # Linux中，{} 是无序的，使用OrderedDict会增大内存开销
+    vocab_dic = {word_count[0]: idx for idx, word_count in enumerate(vocab_list)}
+    vocab_dic.update({UNK: len(vocab_dic), PAD: len(vocab_dic) + 1})
     return vocab_dic
 
 
@@ -42,7 +43,7 @@ def build_dataset(config, ues_word):
     else:
         vocab = build_vocab(config.train_path, tokenizer=tokenizer, max_size=MAX_VOCAB_SIZE, min_freq=1)
         pkl.dump(vocab, open(config.vocab_path, 'wb'))
-    print(f"Vocab size: {len(vocab)}")
+    print('Vocab size: {}'.format(len(vocab)))
 
     def load_dataset(path, pad_size=32):
         contents = []
@@ -65,22 +66,20 @@ def build_dataset(config, ues_word):
                 for word in token:
                     words_idx.append(vocab.get(word, vocab.get(UNK)))
                 contents.append((words_idx, int(label), seq_len))
-        return contents  # [([...], 0), ([...], 1), ...]
+        return contents
     train = load_dataset(config.train_path, config.pad_size)
     dev = load_dataset(config.dev_path, config.pad_size)
     test = load_dataset(config.test_path, config.pad_size)
     return vocab, train, dev, test
 
 
-class DatasetIterater(object):
+class DatasetIterator(object):
     # 可以直接用Pytorch中的DataLoader
     def __init__(self, batches, batch_size, device):
         self.batch_size = batch_size
-        self.batches = batches
+        self.batches = batches  # batches即为dataset
         self.n_batches = len(batches) // batch_size
-        self.residue = False  # 记录batch数量是否为整数
-        if len(batches) % self.n_batches != 0:
-            self.residue = True
+        self.residue = False if len(batches) % self.n_batches == 0 else True  # 记录batch数量是否为整数
         self.index = 0
         self.device = device
 
@@ -119,8 +118,8 @@ class DatasetIterater(object):
 
 
 def build_iterator(dataset, config):
-    iter = DatasetIterater(dataset, config.batch_size, config.device)
-    return iter
+    iterator = DatasetIterator(dataset, config.batch_size, config.device)
+    return iterator
 
 
 def get_time_dif(start_time):
@@ -128,6 +127,43 @@ def get_time_dif(start_time):
     end_time = time.time()
     time_dif = end_time - start_time
     return timedelta(seconds=int(round(time_dif)))
+
+
+def init_seed(num=1):
+    np.random.seed(num)
+    torch.manual_seed(num)  # CPU and CUDA
+    if torch.cuda.is_available():
+        # 固定cudnn可能使模型训练变慢，但利于试验、debug、回归测试
+        torch.backends.cudnn.deterministic = True  # 固定CuDNN的随机数种子
+        torch.backends.cudnn.benchmark = False
+
+
+def get_logger(log_path):
+    logger = logging.getLogger()    # 创建实例
+    logger.setLevel(logging.DEBUG)  # 设置级别，DEBUG < INFO < WARNING < ERROR < CRITICAL
+
+    fh = logging.FileHandler(log_path, mode='w', encoding='UTF-8')  # 磁盘
+    fh.setLevel(logging.WARNING)
+    ch = logging.StreamHandler()                                    # 控制台
+    ch.setLevel(logging.WARNING)
+    # formatter = logging.Formatter('%(asctime)s %(filename)s : %(levelname)s %(message)s')  # 格式化器
+    formatter = logging.Formatter('%(message)s')
+    fh.setFormatter(formatter)
+    ch.setFormatter(formatter)
+
+    logger.addHandler(fh)
+    logger.addHandler(ch)
+    return logger
+
+
+def init_logger(log_dir, add_name=''):
+    timestamp = datetime.datetime.now().strftime('%m-%d_%H-%M')
+    log_path = log_dir + timestamp + '_log.txt'
+
+    if add_name:
+        log_path = add_name + log_path
+    logger = get_logger(log_path)
+    return logger
 
 
 if __name__ == "__main__":
