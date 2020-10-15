@@ -48,7 +48,7 @@ def train(config, model, train_iter, dev_iter, test_iter):
         logger.warning('Epoch [{}/{}]'.format(epoch + 1, config.num_epochs))
         # scheduler.step() # 学习率衰减
         for i, (trains, labels) in enumerate(train_iter):
-            outputs = model(trains)  # trains: (words_idx, seq_len)
+            outputs = model(trains)  # trains: (words_idx, seq_len), outputs: [batch_size, num_classes]
             model.zero_grad()
             loss = F.cross_entropy(outputs, labels)
             loss.backward()
