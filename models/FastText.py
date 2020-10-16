@@ -55,15 +55,15 @@ class Model(nn.Module):
         self.fc2 = nn.Linear(config.hidden_size, config.num_classes)
 
     def forward(self, x):
+        # x: [(words_idx, label, seq_len, bi-gram, tri-gram),...]
+        out_word = self.embedding(x[0])            # [batch_size, pad_size, embed]
+        out_bigram = self.embedding_ngram2(x[2])   # [batch_size, pad_size, embed]
+        out_trigram = self.embedding_ngram3(x[3])  # [batch_size, pad_size, embed]
+        out = torch.cat((out_word, out_bigram, out_trigram), -1)  # [batch_size, pad_size, embed * 3]
 
-        out_word = self.embedding(x[0])
-        out_bigram = self.embedding_ngram2(x[2])
-        out_trigram = self.embedding_ngram3(x[3])
-        out = torch.cat((out_word, out_bigram, out_trigram), -1)
-
-        out = out.mean(dim=1)
+        out = out.mean(dim=1)  # [batch_size, embed * 3], 在pad_size维度取平均
         out = self.dropout(out)
-        out = self.fc1(out)
+        out = self.fc1(out)    # [batch_size, hidden_size]
         out = F.relu(out)
-        out = self.fc2(out)
+        out = self.fc2(out)    # [batch_size, num_classes]
         return out

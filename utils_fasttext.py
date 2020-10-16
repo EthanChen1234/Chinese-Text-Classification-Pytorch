@@ -41,6 +41,7 @@ def build_dataset(config, ues_word):
     print(f"Vocab size: {len(vocab)}")
 
     def biGramHash(sequence, t, buckets):
+        # 14918087, 18408749, 是用质数做的哈希函数，目的是把所有的n-gram都映射到一个词表中
         t1 = sequence[t - 1] if t - 1 >= 0 else 0
         return (t1 * 14918087) % buckets
 
@@ -71,7 +72,7 @@ def build_dataset(config, ues_word):
                     words_line.append(vocab.get(word, vocab.get(UNK)))
 
                 # fasttext ngram
-                buckets = config.n_gram_vocab
+                buckets = config.n_gram_vocab  # 250499
                 bigram = []
                 trigram = []
                 # ------ngram------
@@ -147,6 +148,16 @@ def get_time_dif(start_time):
     end_time = time.time()
     time_dif = end_time - start_time
     return timedelta(seconds=int(round(time_dif)))
+
+
+def init_seed(num=1):
+    np.random.seed(num)
+    torch.manual_seed(num)  # CPU and CUDA
+    if torch.cuda.is_available():
+        # 固定cudnn可能使模型训练变慢，但利于试验、debug、回归测试
+        torch.backends.cudnn.deterministic = True  # 固定CuDNN的随机数种子
+        torch.backends.cudnn.benchmark = False
+
 
 if __name__ == "__main__":
     '''提取预训练词向量'''

@@ -4,7 +4,7 @@ from train_eval import train, init_network
 from importlib import import_module  # 动态导入
 
 parser = argparse.ArgumentParser(description='Chinese Text Classification')
-parser.add_argument('--model', default='TextCNN', type=str,
+parser.add_argument('--model', default='FastText', type=str,
                     help='choose a model: TextCNN, TextRNN, FastText, TextRCNN, TextRNN_Att, DPCNN, Transformer')
 parser.add_argument('--embedding', default='pre_trained', type=str, help='random or pre_trained')
 parser.add_argument('--word', default=False, type=bool, help='True for word, False for char')
@@ -18,10 +18,10 @@ if __name__ == '__main__':
     embedding = 'random' if args.embedding == 'random' else 'embedding_SougouNews.npz'
     model_name = args.model  # TextCNN, TextRNN, FastText, TextRCNN, TextRNN_Att, DPCNN, Transformer
     if model_name == 'FastText':
-        from utils_fasttext import build_dataset, build_iterator
+        from utils_fasttext import build_dataset, build_iterator, init_seed
         embedding = 'random'
     else:
-        from utils import build_dataset, build_iterator, init_seed, init_logger
+        from utils import build_dataset, build_iterator, init_seed
 
     init_seed(num=1)  # 固定随机种子，保证每次结果相同
 
@@ -29,7 +29,7 @@ if __name__ == '__main__':
     x = import_module('models.' + model_name)
     config = x.Config(dataset, embedding)
     c = config
-    vocab, train_data, dev_data, test_data = build_dataset(config, args.word)  # [(words_idx, label, seq_len),...]
+    vocab, train_data, dev_data, test_data = build_dataset(config, args.word)  # [(words_idx, label, seq_len, *bi-gram, *tri-gram),...]
     train_iter = build_iterator(train_data, config)  # 迭代器
     dev_iter = build_iterator(dev_data, config)
     test_iter = build_iterator(test_data, config)

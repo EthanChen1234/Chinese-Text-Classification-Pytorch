@@ -156,16 +156,6 @@ def get_logger(log_path):
     return logger
 
 
-def init_logger(log_dir, add_name=''):
-    timestamp = datetime.datetime.now().strftime('%m-%d_%H-%M')
-    log_path = log_dir + timestamp + '_log.txt'
-
-    if add_name:
-        log_path = add_name + log_path
-    logger = get_logger(log_path)
-    return logger
-
-
 if __name__ == "__main__":
     '''提取预训练词向量'''
     # 下面的目录、文件名按需更改。
